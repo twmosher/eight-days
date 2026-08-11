@@ -1,0 +1,6 @@
+{
+  "BUILDER":{"values":{"AUTO_SURTAX":2,"DAIRY_TRQ":5,"ALCOHOL":1,"USMCA_PROCESS":4,"SA_QUOTA":3},"resolve":0.52,"wanted":"DAIRY_TRQ","tell":"The draft comes back marked line by line. The other side is working toward a durable text, not a photograph."},
+  "BROADCASTER":{"values":{"AUTO_SURTAX":4,"DAIRY_TRQ":1,"ALCOHOL":5,"USMCA_PROCESS":1,"SA_QUOTA":2},"resolve":0.24,"wanted":"ALCOHOL","tell":"The response is fast, senior and focused on what can be announced before August 19."},
+  "DETROIT":{"values":{"AUTO_SURTAX":5,"DAIRY_TRQ":1,"ALCOHOL":1,"USMCA_PROCESS":2,"SA_QUOTA":4},"resolve":0.68,"wanted":"AUTO_SURTAX","tell":"Every substantive question comes back to vehicle flows and the cost of metal inputs."},
+  "SQUEEZE":{"values":{"AUTO_SURTAX":1,"DAIRY_TRQ":1,"ALCOHOL":1,"USMCA_PROCESS":5,"SA_QUOTA":1},"resolve":0.88,"wanted":"USMCA_PROCESS","tell":"The 338 file barely moves. Every opening is redirected toward the larger continental review."}
+}

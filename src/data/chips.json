@@ -1,0 +1,7 @@
+[
+  {"id":"AUTO_SURTAX","label":"Auto surtax","what":"Rescind the Motor Vehicles 2025 surtax order","cost":"Medium–high","costValue":4,"deliverability":"Full","detail":"A federal order. Ottawa controls it."},
+  {"id":"DAIRY_TRQ","label":"Dairy TRQ","what":"Accept the U.S. reading of quota allocation","cost":"High","costValue":5,"deliverability":"Partial","detail":"Supply management is a coalition, not a switch."},
+  {"id":"ALCOHOL","label":"Alcohol","what":"Return U.S. alcohol to major provincial shelves","cost":"Low","costValue":1,"deliverability":"Weak","detail":"Provincial jurisdiction. Ottawa cannot order this."},
+  {"id":"USMCA_PROCESS","label":"USMCA process","what":"Enter formal structured rounds","cost":"Low now / high later","costValue":3,"deliverability":"Full","detail":"Spends future leverage."},
+  {"id":"SA_QUOTA","label":"S&A quota","what":"Accept a steel and aluminum export quota","cost":"Medium","costValue":3,"deliverability":"Full + friction","detail":"Ottawa can deliver it. Industry will resist."}
+]
