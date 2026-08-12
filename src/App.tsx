@@ -55,27 +55,43 @@ function Redaction({ revealed, text }: { revealed?: boolean; text?: string }) {
 function Desk({ state, onBegin }: { state: GameState; onBegin: (willImpose: number, waitingHelps: number) => void }) {
   const [willImpose, setWillImpose] = useState(50);
   const [waitingHelps, setWaitingHelps] = useState(50);
+  const instinct = willImpose >= 65
+    ? "You think Washington means it. The file will test what you are willing to spend on that belief."
+    : willImpose <= 35
+      ? "You think Washington is bluffing. The file will test whether you can hold that nerve."
+      : waitingHelps >= 65
+        ? "You think time favors Canada. In the room, every day will have a price."
+        : waitingHelps <= 35
+          ? "You think delay makes the position worse. The first offer may be your best leverage."
+          : "You are entering without a strong prior. The room will force one out of you.";
   return <Frame state={state} eyebrow="Prime Minister’s Office · August 11, 2026 · 1:30 p.m. ET" title="Eight days">
-    <p className="standfirst">In eight days, a <strong className="data">50%</strong> U.S. tariff lands on roughly <strong className="data">$20 billion</strong> of Canadian goods.</p>
-    <div className="assessment"><span>ASSESSMENT — NEGOTIATING TEAM</span><p>You have five concessions. You know what each costs Canada. You do not know what any is worth to Washington. Some are not yours to deliver.</p></div>
-    <div className="docket-title"><span>Schedule A</span><span>Canadian authorities available</span></div>
-    <div className="chip-table">
-      {chips.map((chip) => <article className="desk-chip" key={chip.id}>
-        <div className="chip-index">{String(chips.indexOf(chip) + 1).padStart(2, "0")}</div>
-        <div><h2>{chip.label}</h2><p>{chip.what}</p><dl><div><dt>Cost to Canada</dt><dd>{chip.cost}</dd></div><div><dt>Deliverability</dt><dd>{chip.deliverability}</dd></div><div><dt>Value to Washington</dt><dd><Redaction /></dd></div></dl></div>
-      </article>)}
-    </div>
+    <section className="opening-hook">
+      <p className="deadline-line"><span>Deadline</span><strong>12:01 a.m. · August 19</strong></p>
+      <p className="standfirst">A <strong className="data">50%</strong> U.S. tariff is about to hit <strong className="data">$20 billion</strong> of Canadian goods. You have eight days to stop it—or decide the price is too high.</p>
+      <div className="opening-stakes"><div><strong>5</strong><span>concessions you can offer</span></div><div><strong>4</strong><span>possible U.S. postures</span></div><div><strong>1</strong><span>decision on the record</span></div></div>
+    </section>
+    <section className="beliefs opening-poll">
+      <div className="poll-heading"><p className="section-label">Your first decision · before the briefing</p><span>There is no neutral answer.</span></div>
+      <label><span>Probability Washington lets the tariffs land if Canada offers nothing</span><output>{willImpose}%</output><input aria-label="Probability Washington lets the tariffs land" type="range" min="0" max="100" step="1" value={willImpose} onChange={(e) => setWillImpose(Number(e.target.value))} /></label>
+      <label><span>Probability Canada’s position improves by waiting</span><output>{waitingHelps}%</output><input aria-label="Probability Canada’s position improves by waiting" type="range" min="0" max="100" step="1" value={waitingHelps} onChange={(e) => setWaitingHelps(Number(e.target.value))} /></label>
+      <p className="instinct-read" aria-live="polite">{instinct}</p>
+      <button className="primary opening-cta" onClick={() => onBegin(willImpose, waitingHelps)}>Lock my read. Open the file <span>→</span></button>
+      <p className="start-note">This starts the clock. Your read will be compared with what you do under pressure.</p>
+    </section>
+    <details className="briefing authority-preview"><summary>Preview your five bargaining chips</summary><div>
+      <div className="docket-title"><span>Schedule A</span><span>Canadian authorities available</span></div>
+      <div className="chip-table">
+        {chips.map((chip) => <article className="desk-chip" key={chip.id}>
+          <div className="chip-index">{String(chips.indexOf(chip) + 1).padStart(2, "0")}</div>
+          <div><h2>{chip.label}</h2><p>{chip.what}</p><dl><div><dt>Cost to Canada</dt><dd>{chip.cost}</dd></div><div><dt>Deliverability</dt><dd>{chip.deliverability}</dd></div><div><dt>Value to Washington</dt><dd><Redaction /></dd></div></dl></div>
+        </article>)}
+      </div>
+    </div></details>
     <details className="briefing"><summary>Open factual briefing · frozen August 11, 2026</summary><div>
       <p>Section 338 duties are scheduled for <strong className="data">12:01 a.m. ET, August 19</strong>. The additional duty is USMCA-blind and covers specified autos, alcohol, dairy and other goods.</p>
       <p>Canada seeks relief from the existing Section 232 wall. The reported negotiation includes auto counter-tariffs, dairy quota allocation, provincial alcohol listings, and a possible steel and aluminum export quota.</p>
       <p className="source-note">Scenario facts are frozen before the August 11 meeting. Hidden values are invented game state, randomized per playthrough.</p>
     </div></details>
-    <section className="beliefs">
-      <p className="section-label">Before you begin, your own read</p>
-      <label><span>Probability Washington lets the tariffs land if Canada offers nothing</span><output>{willImpose}%</output><input type="range" min="0" max="100" step="1" value={willImpose} onChange={(e) => setWillImpose(Number(e.target.value))} /></label>
-      <label><span>Probability Canada’s position improves by waiting</span><output>{waitingHelps}%</output><input type="range" min="0" max="100" step="1" value={waitingHelps} onChange={(e) => setWaitingHelps(Number(e.target.value))} /></label>
-    </section>
-    <button className="primary" onClick={() => onBegin(willImpose, waitingHelps)}>Open the file <span>→</span></button>
   </Frame>;
 }
 
