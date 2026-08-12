@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { POSTURES, createInitialState, resolve, scoreGame, type GameState, type Posture } from "./game";
+import { POSTURES, createInitialState, remiProfile, resolve, scoreGame, type GameState, type Posture } from "./game";
+import { REMI_PERSONALITY_POSSIBILITIES, createRemiProfile } from "./lib/remi";
 
 function seedFor(posture: Posture) {
   for (let index = 0; index < 10_000; index += 1) {
@@ -53,5 +54,20 @@ describe("EIGHT DAYS resolver", () => {
     state = resolve(state, { type: "SUBMIT_OFFER" });
     expect(state.offered).toEqual([]);
     expect(state.delivery).toEqual({});
+  });
+
+  it("produces a bounded, repeatable REMI score with choice evidence", () => {
+    const state = play("remi-fixed");
+    expect(remiProfile(state)).toEqual(remiProfile(state));
+    expect(remiProfile(state).score).toBeGreaterThanOrEqual(0);
+    expect(remiProfile(state).score).toBeLessThanOrEqual(100);
+    expect(remiProfile(state).evidence.length).toBeGreaterThan(0);
+    expect(REMI_PERSONALITY_POSSIBILITIES).toBeGreaterThan(1000);
+  });
+
+  it("keeps the REMI engine game-agnostic", () => {
+    const profile = createRemiProfile([{ trait: "discernment", value: 91, evidence: "Found the hidden constraint." }], "another-game");
+    expect(profile.traits.discernment).toBe(91);
+    expect(profile.portrait).toContain("Your strongest signature");
   });
 });

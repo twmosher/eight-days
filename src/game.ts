@@ -1,5 +1,6 @@
 import chipsData from "./data/chips.json";
 import posturesData from "./data/postures.json";
+import { createRemiProfile, type RemiSignal } from "./lib/remi";
 
 export const CHIP_IDS = ["AUTO_SURTAX", "DAIRY_TRQ", "ALCOHOL", "USMCA_PROCESS", "SA_QUOTA"] as const;
 export const POSTURES = ["BUILDER", "BROADCASTER", "DETROIT", "SQUEEZE"] as const;
@@ -213,6 +214,23 @@ export function scoreGame(state: GameState) {
   nerve = Math.max(0, Math.min(100, nerve));
   const total = Math.round(read * 0.4 + price * 0.4 + nerve * 0.2);
   return { read, price, nerve, total, spent: Math.round(spent * 10) / 10 };
+}
+
+export function remiProfile(state: GameState) {
+  const score = scoreGame(state);
+  const exactReads = CHIP_IDS.filter((chip) => state.playerEstimates[chip] && valueLabel(postureSpecs[state.posture].values[chip]) === state.playerEstimates[chip]).length;
+  const intelDiscipline = state.intelPurchased.length === 0 ? 42 : state.intelPurchased.length === 3 ? 72 : 82;
+  const heldUnderPressure = state.finalDecision === "call_bluff" || state.finalDecision === "counter" || state.finalDecision === "let_hit";
+  const beliefAlignment = ((state.beliefs.waitingHelps >= 50) === (state.postponementAccepted === false)) ? 82 : 38;
+  const signals: RemiSignal[] = [
+    { trait: "discernment", value: score.read, weight: 2, evidence: `You correctly priced ${exactReads} of ${CHIP_IDS.length} hidden values.` },
+    { trait: "efficiency", value: score.price, weight: 2, evidence: score.spent ? `You spent ${score.spent} weighted units to build the outcome.` : "You preserved every available concession." },
+    { trait: "resolve", value: score.nerve, weight: 1.5, evidence: heldUnderPressure ? "Your final move kept pressure on the other side." : "Your final move converted uncertainty into a settled package." },
+    { trait: "adaptability", value: state.domesticResponse === "substitute" ? 88 : state.domesticResponse === "limits" ? 74 : 58, evidence: `When the offer came home, you chose ${state.domesticResponse ?? "no recorded response"}.` },
+    { trait: "calibration", value: Math.round((score.read + beliefAlignment) / 2), weight: 1.4, evidence: `Your stated probabilities ${beliefAlignment > 50 ? "matched" : "conflicted with"} your later posture.` },
+    { trait: "stewardship", value: Math.round((100 - Math.min(100, score.spent * 12) + intelDiscipline) / 2), evidence: `You used ${state.intelPurchased.length} of 3 available intelligence days.` },
+  ];
+  return createRemiProfile(signals, state.seed);
 }
 
 export function archetype(state: GameState) {

@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createGameAnalytics } from "judgethesituation-analytics";
 import intelData from "./data/intel.json";
 import {
   CHIP_IDS, archetype, chipLabel, chips, createInitialState, finalPackageText,
-  postureSpecs, randomFor, resolve, scoreGame, valueLabel,
+  postureSpecs, randomFor, remiProfile, resolve, scoreGame, valueLabel,
   type Chip, type FinalDecision, type GameAction, type GameState, type IntelCard, type ValueGuess,
 } from "./game";
-import { createTracker } from "./lib/tracker";
 
 const GAME_SLUG = "eight-days";
 const GAME_VERSION = "1.0.0";
+const analytics = createGameAnalytics({ gameSlug: GAME_SLUG, gameVersion: GAME_VERSION });
 const prizeNames = {
   "338_POSTPONEMENT": "Section 338 postponed 90 days",
   "338_WITHDRAWAL": "Section 338 withdrawn",
@@ -24,11 +25,6 @@ const roundNames: Record<GameState["phase"], string> = {
 
 function makeSeed() {
   return new URLSearchParams(location.search).get("seed") || crypto.randomUUID().slice(0, 8);
-}
-
-function freshTracker() {
-  localStorage.removeItem(`jts_session_${GAME_SLUG}`);
-  return createTracker({ gameSlug: GAME_SLUG, gameVersion: GAME_VERSION });
 }
 
 function Header({ state }: { state: GameState }) {
@@ -181,6 +177,7 @@ function Final({ state, seconds, decide }: { state: GameState; seconds: number; 
 
 function Reveal({ state, onReplay, onShare, onFeedback }: { state: GameState; onReplay: () => void; onShare: () => void; onFeedback: (useful: boolean) => void }) {
   const score = scoreGame(state);
+  const remi = remiProfile(state);
   const type = archetype(state);
   const truth = postureSpecs[state.posture].values;
   const failed = state.offered.find((chip) => state.delivery[chip] === "failed");
@@ -192,7 +189,8 @@ function Reveal({ state, onReplay, onShare, onFeedback }: { state: GameState; on
       {CHIP_IDS.map((chip, index) => <div className="reveal-row" key={chip} style={{ "--delay": `${index * 400}ms` } as React.CSSProperties}><strong>{chipLabel(chip)}</strong><span>{state.playerEstimates[chip] ?? "—"}</span><Redaction revealed text={valueLabel(truth[chip])} /></div>)}
     </section>
     <div className="reveal-notes"><p><strong>What you read:</strong> {exact.length ? `${exact.map(chipLabel).join(", ")} landed where you priced ${exact.length === 1 ? "it" : "them"}.` : "Your estimates never fully matched Washington’s private order."}</p><p><strong>What it cost:</strong> {failed ? `${chipLabel(failed)} failed at delivery after you had already made it negotiable.` : score.spent ? `You surrendered ${score.spent} weighted units of Canadian cost.` : "You surrendered no Canadian authority."}</p></div>
-    <section className="score-block"><div className="total-score"><span>JUDGMENT</span><strong>{score.total}</strong><small>/100</small></div><div className="dimensions"><div><span>Read · 40%</span><strong>{score.read}</strong></div><div><span>Price · 40%</span><strong>{score.price}</strong></div><div><span>Nerve · 20%</span><strong>{score.nerve}</strong></div></div></section>
+    <section className="score-block"><div className="total-score"><span>REMI STANDARD SCORE</span><strong>{remi.score}</strong><small>/100 · {remi.band}</small></div><div className="dimensions"><div><span>Read · 40%</span><strong>{score.read}</strong></div><div><span>Price · 40%</span><strong>{score.price}</strong></div><div><span>Nerve · 20%</span><strong>{score.nerve}</strong></div></div></section>
+    <section className="remi-profile"><p className="section-label">Decision fingerprint</p><h2>{remi.fingerprint}</h2><p>{remi.portrait}</p><div className="trait-grid">{Object.entries(remi.traits).map(([trait, value]) => <div key={trait}><span>{trait}</span><strong>{value}</strong></div>)}</div><ul>{remi.evidence.map((item) => <li key={item}>{item}</li>)}</ul><small>REMI interprets choices made in this scenario. It is not a clinical or employment assessment.</small></section>
     <section className="outcome"><p className="section-label">Outcome · displayed, not scored</p><h2>{state.tariffsLanded ? "The tariffs landed." : "The tariffs did not land."}</h2><p>{state.outcome}</p><ul>{state.won.map((prize) => <li key={prize}>{prizeNames[prize]}</li>)}</ul></section>
     <section className="comparison"><p>{state.offered.includes("DAIRY_TRQ") ? "You surrendered dairy. 71% of seeded baseline players did." : "You held dairy. 29% of seeded baseline players did."}</p><p>{state.won.includes("SA_RELIEF") && !state.offered.includes("AUTO_SURTAX") ? "You held autos and got steel relief. 9% of seeded baseline players did." : "Only 9% of seeded baseline players held autos and still got steel relief."}</p><small>Comparisons use seeded launch baselines, not live player data.</small></section>
     <section className="epilogue"><p className="section-label">What actually happened</p><p>This scenario is frozen at <strong className="data">1:30 p.m. ET on August 11, 2026</strong>. Real events sit outside the score and never change the hidden posture.</p><a href="https://judgethesituation.com" target="_blank" rel="noreferrer">Read the current platform note ↗</a></section>
@@ -204,14 +202,14 @@ function Reveal({ state, onReplay, onShare, onFeedback }: { state: GameState; on
 export default function App() {
   const [state, setState] = useState(() => createInitialState(makeSeed()));
   const [seconds, setSeconds] = useState(45);
-  const tracker = useRef(freshTracker());
   const timedOut = useRef(false);
   const trackedResult = useRef(false);
+  const elapsedStart = useRef(Date.now());
 
   useEffect(() => {
-    tracker.current("landing_view", { seed: state.seed });
-    tracker.current("game_impression", { seed: state.seed });
-    const onError = () => tracker.current("error", { error_code: "window_error", abandonment_point: state.phase });
+    analytics.trackOnce("landing_view", { seed: state.seed });
+    analytics.trackOnce("game_impression", { seed: state.seed });
+    const onError = () => analytics.track("error", { error_code: "window_error", abandonment_point: state.phase });
     window.addEventListener("error", onError);
     return () => window.removeEventListener("error", onError);
   // One impression per loaded playthrough.
@@ -228,8 +226,8 @@ export default function App() {
     if (state.phase === "final" && seconds === 0 && !timedOut.current) {
       timedOut.current = true;
       setState((current) => resolve(current, { type: "FINAL_DECISION", decision: "let_hit" }));
-      tracker.current("round_complete", { round_number: 5, decision_id: "final_authority", choice_id: "timer_expired", elapsed_ms: 45000 });
-      tracker.current("game_complete", { ending: "timer_expired", abandonment_point: "final_decision" });
+      analytics.track("round_complete", { round_number: 5, decision_id: "final_authority", choice_id: "timer_expired", elapsed_ms: 45000 });
+      analytics.track("game_complete", { ending: "timer_expired", abandonment_point: "final_decision" });
     }
   }, [seconds, state.phase]);
 
@@ -237,44 +235,46 @@ export default function App() {
     if (state.phase === "reveal" && !trackedResult.current) {
       trackedResult.current = true;
       const score = scoreGame(state);
-      tracker.current("result_view", { score: score.total, ending: archetype(state).name });
+      const remi = remiProfile(state);
+      analytics.track("result_view", { score: score.total, remi_score: remi.score, remi_fingerprint: remi.possibilityKey, ending: archetype(state).name });
     }
   }, [state]);
 
-  const elapsedStart = useMemo(() => Date.now(), []);
   const dispatch = (action: GameAction) => setState((current) => resolve(current, action));
   const begin = (willImpose: number, waitingHelps: number) => {
     dispatch({ type: "SET_BELIEFS", willImpose, waitingHelps });
-    tracker.current("game_start", { decision_id: "initial_beliefs", will_impose: willImpose, waiting_helps: waitingHelps });
-    tracker.current("first_decision", { decision_id: "initial_beliefs", choice_id: `${willImpose}-${waitingHelps}`, elapsed_ms: Date.now() - elapsedStart });
-    tracker.current("round_complete", { round_number: 0, elapsed_ms: Date.now() - elapsedStart });
+    analytics.track("game_start", { decision_id: "initial_beliefs", will_impose: willImpose, waiting_helps: waitingHelps });
+    analytics.track("first_decision", { decision_id: "initial_beliefs", choice_id: `${willImpose}-${waitingHelps}`, elapsed_ms: Date.now() - elapsedStart.current });
+    analytics.track("round_complete", { round_number: 0, elapsed_ms: Date.now() - elapsedStart.current });
   };
   const handle = (action: GameAction, round?: number, decisionId?: string, choiceId?: string) => {
     dispatch(action);
-    if (round !== undefined) tracker.current("round_complete", { round_number: round, decision_id: decisionId ?? null, choice_id: choiceId ?? null, elapsed_ms: Date.now() - elapsedStart });
+    if (round !== undefined) analytics.track("round_complete", { round_number: round, decision_id: decisionId ?? null, choice_id: choiceId ?? null, elapsed_ms: Date.now() - elapsedStart.current });
   };
   const decide = (decision: FinalDecision) => {
     dispatch({ type: "FINAL_DECISION", decision });
-    tracker.current("round_complete", { round_number: 5, decision_id: "final_authority", choice_id: decision, elapsed_ms: (45 - seconds) * 1000 });
-    tracker.current("game_complete", { ending: decision, elapsed_ms: Date.now() - elapsedStart });
+    analytics.track("round_complete", { round_number: 5, decision_id: "final_authority", choice_id: decision, elapsed_ms: (45 - seconds) * 1000 });
+    analytics.track("game_complete", { ending: decision, elapsed_ms: Date.now() - elapsedStart.current });
   };
   const replay = () => {
-    tracker.current("replay_start", { ending: archetype(state).name });
+    analytics.track("replay_start", { ending: archetype(state).name });
     const campaign = new URLSearchParams(location.search).get("jts_campaign");
     const seed = crypto.randomUUID().slice(0, 8);
     const params = new URLSearchParams({ seed });
     if (campaign) params.set("jts_campaign", campaign);
     history.replaceState(null, "", `?${params}`);
-    tracker.current = freshTracker();
+    analytics.newSession();
+    elapsedStart.current = Date.now();
     setState(createInitialState(seed)); setSeconds(45); timedOut.current = false; trackedResult.current = false;
-    tracker.current("landing_view", { seed, replay: true }); tracker.current("game_impression", { seed, replay: true });
+    analytics.trackOnce("landing_view", { seed, replay: true }); analytics.trackOnce("game_impression", { seed, replay: true });
     window.scrollTo(0, 0);
   };
   const share = async () => {
     const url = new URL(location.href); url.searchParams.set("seed", state.seed);
-    tracker.current("share_click", { score: scoreGame(state).total, ending: archetype(state).name });
-    const shareData = { title: `EIGHT DAYS — ${archetype(state).name}`, text: `I scored ${scoreGame(state).total}/100 in EIGHT DAYS. Price the deal before the tariff lands.`, url: url.toString() };
-    try { if (navigator.share) await navigator.share(shareData); else await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`); } catch (error) { if ((error as Error).name !== "AbortError") tracker.current("error", { error_code: "share_failed" }); }
+    const remi = remiProfile(state);
+    analytics.track("share_click", { score: remi.score, remi_fingerprint: remi.possibilityKey, ending: archetype(state).name });
+    const shareData = { title: `EIGHT DAYS — ${archetype(state).name}`, text: `My REMI score was ${remi.score}/100: ${remi.fingerprint}.`, url: url.toString() };
+    try { if (navigator.share) await navigator.share(shareData); else await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`); } catch (error) { if ((error as Error).name !== "AbortError") analytics.track("error", { error_code: "share_failed" }); }
   };
 
   if (state.phase === "desk") return <Desk state={state} onBegin={begin} />;
@@ -284,5 +284,5 @@ export default function App() {
   if (state.phase === "backfire") return <Backfire state={state} choose={(response) => handle({ type: "HANDLE_BACKFIRE", response }, 3, "domestic_response", response)} />;
   if (state.phase === "postponement") return <Postponement state={state} respond={(accept) => handle({ type: "RESPOND_POSTPONEMENT", accept }, 4, "postponement", accept ? "accept" : "refuse")} />;
   if (state.phase === "final") return <Final state={state} seconds={seconds} decide={decide} />;
-  return <Reveal state={state} onReplay={replay} onShare={share} onFeedback={(useful) => tracker.current("feedback_submit", { decision_id: "reveal_changed_read", choice_id: useful ? "yes" : "no" })} />;
+  return <Reveal state={state} onReplay={replay} onShare={share} onFeedback={(useful) => analytics.track("feedback_submit", { decision_id: "reveal_changed_read", choice_id: useful ? "yes" : "no" })} />;
 }

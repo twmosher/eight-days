@@ -143,6 +143,16 @@ blockquote strong { display:block; margin:12px 0; font:600 clamp(56px,14vw,96px)
 .dimensions div { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.3); }
 .dimensions span { font:500 11px/1 "IBM Plex Mono",monospace; text-transform:uppercase; }
 .dimensions strong { font:600 20px/1 "IBM Plex Mono",monospace; }
+.remi-profile { margin-top:16px; padding:20px; border:2px solid var(--ink); background:var(--paper); }
+.remi-profile h2 { margin:0 0 9px; font-size:30px; }
+.remi-profile > p:not(.section-label) { max-width:590px; font-size:18px; line-height:1.35; }
+.trait-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; margin:18px 0; background:var(--ink); border:1px solid var(--ink); }
+.trait-grid div { display:flex; justify-content:space-between; padding:9px 10px; background:var(--paper); }
+.trait-grid span { font:500 10px/1 "IBM Plex Mono",monospace; text-transform:uppercase; }
+.trait-grid strong { font:600 15px/1 "IBM Plex Mono",monospace; }
+.remi-profile ul { margin:0 0 14px; padding-left:20px; }
+.remi-profile li { margin:5px 0; }
+.remi-profile small { color:var(--muted); }
 .outcome,.comparison,.epilogue { margin-top:16px; padding:18px; border:1px solid var(--ink); }
 .outcome h2 { margin:0 0 7px; font-size:30px; }
 .outcome p { margin-bottom:8px; }

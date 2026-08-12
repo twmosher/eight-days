@@ -23,7 +23,7 @@ npm run build
 
 ## Analytics
 
-The client uses the shared Judge the Situation tracker and sends standardized events to `https://judgethesituation.com/api/events`. It does not contain Supabase credentials or collect names, email addresses, or raw IP addresses.
+The client uses version `0.1.1` of the shared Judge the Situation analytics SDK and sends standardized events to `https://judgethesituation.com/api/events`. The release tarball is committed under `vendor/` so this repository remains independently installable. It does not contain Supabase credentials or collect names, email addresses, or raw IP addresses.
 
 - Game slug: `eight-days`
 - Game version: `1.0.0`
